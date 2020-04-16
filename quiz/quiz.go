@@ -1,17 +1,29 @@
 package main
-import (
-		"flag"
-		"fmt"
-		"os"
-	   )
 
-func main()  {
+import (
+	"encoding/csv"
+	"flag"
+	"fmt"
+	"os"
+)
+
+func main() {
 	// Read command line flags
-	csv_path := flag.String("csv", "questions.csv", "CSV with questions")
-	flag.Parse()	
-	file, e := os.Open(*csv_path)
+	csvPath := flag.String("csv", "questions.csv", "CSV with questions")
+	flag.Parse()
+	file, e := os.Open(*csvPath)
 	if e != nil {
-		fmt.Println("Failed to open csv file")
-		os.Exit(1)
+		errorExit(fmt.Sprintf("Failed to open csv file at %s", *csvPath))
 	}
+	r := csv.NewReader(file)
+	pairs, e := r.ReadAll()
+	if e != nil {
+		fmt.Println("File could not be parsed.")
+	}
+	fmt.Println(pairs)
+}
+
+func errorExit(msg string) {
+	fmt.Println(msg)
+	os.Exit(1)
 }
