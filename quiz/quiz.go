@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 )
 
 // Store question-answer pairs
@@ -17,6 +18,7 @@ type quiz struct {
 func main() {
 	// Read a command line flag specifying the CSV with the questions.
 	csvPath := flag.String("csv", "questions.csv", "CSV with questions")
+	timeLimit := flag.Int("limit", 30, "The time limit in seconds.")
 	flag.Parse()
 
 	// Open the file from path.
@@ -33,6 +35,8 @@ func main() {
 		// Handle any errors.
 		errorExit("File could not be parsed.")
 	}
+	// Create a timer for the quiz.
+	timer := time.NewTimer(time.Duration(*timeLimit) * time.Second)
 	// Process the resulting strings.
 	quiz := parsePairs(pairs)
 
@@ -40,14 +44,26 @@ func main() {
 	// Iterate through each question.
 	for index, problem := range quiz {
 		fmt.Printf("Problem #%d: %s = ", index+1, problem.question)
-		var answer string
-		fmt.Scanf("%s\n", &answer)
-		if answer == problem.answer {
-			fmt.Println("Correct!")
-			score++
-		} else {
-			fmt.Println("Incorrect!")
+		answerChan := make(chan string)
+		go func() {
+			var answer string
+			fmt.Scanf("%s\n", &answer)
+			answerChan <- answer
+		}()
+
+		select {
+		case <-timer.C:
+			fmt.Printf("\nYou scored %d out of %d correct!\n", score, len(quiz))
+			return
+		case answer := <-answerChan:
+			if answer == problem.answer {
+				fmt.Println("Correct!")
+				score++
+			} else {
+				fmt.Println("Incorrect!")
+			}
 		}
+
 	}
 	fmt.Printf("You scored %d out of %d correct!\n", score, len(quiz))
 
